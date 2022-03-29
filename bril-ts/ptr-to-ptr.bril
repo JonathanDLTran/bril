@@ -1,0 +1,35 @@
+@f(): ptr<int> {
+    size: int = const 5;
+    p1: ptr<int> = alloc size;
+    ret p1;
+}
+
+@main {
+    size: int = const 10;
+    one: int = const 1;
+    p1: ptr<int> = alloc size;
+    val: int = const 5;
+    store p1 val;
+    p2: ptr<ptr<int>> = alloc one;
+    store p2 p1;
+    p: ptr<int> = load p2;
+
+    print p;
+
+
+
+
+    x: ptr<int> = call @f;
+    z_offset: int = const 3;
+    zero_offset: int = const 0;
+    z: ptr<int> = ptradd x z_offset;
+    z: ptr<int> = ptradd x zero_offset;
+    print z;
+    print x;
+
+
+
+    x: ptr<int> = alloc size;
+    x: ptr<int> = const 3;
+    print x;
+}
