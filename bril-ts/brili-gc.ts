@@ -525,7 +525,7 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
           if (typeof argptr === "number" || typeof argptr === "boolean" || typeof destptr === "number" || typeof destptr === "boolean") {
             throw error(`${argptr} or ${destptr} cannot be a number nor boolean`);
           } else {
-            if ("loc" in argptr && "loc" in destptr) {
+            if (typeof argptr !== "bigint" && typeof destptr !== "bigint" && "loc" in argptr && "loc" in destptr) {
               state.refmap.incr(destptr, 1);
               state.refmap.decr(argptr, 1);
 
@@ -724,7 +724,7 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
         if (typeof destptr === "number" || typeof destptr === "boolean") {
           throw error(`${destptr} cannot be a number nor boolean`);
         } else {
-          if ("loc" in destptr) {
+          if (typeof destptr !== "bigint" && "loc" in destptr) {
             state.refmap.decr(destptr, 1);
 
             if (state.refmap.ref_count(destptr) === 0) {
@@ -746,10 +746,8 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
     }
 
     case "free": {
-      throw error(`Free should never be used with a garbage collector.`);
-      // let val = getPtr(instr, state.env, 0);
-      // state.heap.free(val.loc);
-      // return NEXT;
+      // skip all freeing
+      return NEXT;
     }
 
     case "store": {
@@ -768,7 +766,7 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
 
         // a load can can bring in another pointer to stack, so we check if val is a Pointer value
         // If so, instr.dest now points at val, so we increment count
-        if (typeof val !== "number" && typeof val !== "boolean" && "loc" in val) {
+        if (typeof val !== "number" && typeof val !== "boolean" && typeof val !== "bigint" && "loc" in val) {
           state.refmap.incr(val, 1);
         }
 
