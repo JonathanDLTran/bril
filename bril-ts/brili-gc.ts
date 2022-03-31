@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { stat } from 'fs';
 import * as bril from './bril';
 import { readStdin, unreachable } from './util';
 
@@ -105,7 +104,7 @@ export class Heap<X> {
 export class RefMap {
 
   private readonly refmap: Map<Pointer, number>
-  private readonly pointermap: Map<Pointer, Pointer>
+  private readonly pointermap: Map<Pointer, Pointer[]>
   constructor() {
     this.refmap = new Map();
     this.pointermap = new Map();
@@ -116,7 +115,15 @@ export class RefMap {
   }
 
   add_ptr(parent: Pointer, child: Pointer) {
-    this.pointermap.set(parent, child);
+    if (this.pointermap.has(parent)) {
+      this.pointermap.get(parent)!.push(child);
+    } else {
+      this.pointermap.set(parent, [child]);
+    }
+  }
+
+  remove_ptr(parent: Pointer) {
+    this.pointermap.delete(parent);
   }
 
   add_key(ptr: Pointer) {
@@ -165,16 +172,24 @@ export class RefMap {
     }
   }
 
-  recursively_decr(ptr: Pointer, heap: Heap<Value>) {
+  recursively_decr(ptr: Pointer, heap: Heap<Value>, visited: Pointer[]) {
     this.decr(ptr, 1);
+
+    visited.push(ptr);
 
     if (this.ref_count(ptr) === 0) {
 
       // recursively check children
       if (this.pointermap.has(ptr)) {
-        let child = this.pointermap.get(ptr);
-        this.recursively_decr(child!, heap);
+        let children = this.pointermap.get(ptr);
+        for (let child of children!) {
+          if (!visited.includes(child)) {
+            this.recursively_decr(child, heap, visited);
+          }
+        }
       }
+
+      this.remove_ptr(ptr);
 
       heap.free(ptr.loc);
       this.remove_key(ptr);
@@ -550,7 +565,7 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
           } else {
             if (typeof argptr !== "bigint" && typeof destptr !== "bigint" && "loc" in argptr && "loc" in destptr) {
               state.refmap.incr(destptr, 1);
-              state.refmap.recursively_decr(argptr, state.heap);
+              state.refmap.recursively_decr(argptr, state.heap, []);
             } else {
               throw error(`${argptr} nor ${destptr} cannot be a bigint`);
             }
@@ -743,7 +758,7 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
           throw error(`${destptr} cannot be a number nor boolean`);
         } else {
           if (typeof destptr !== "bigint" && "loc" in destptr) {
-            state.refmap.recursively_decr(destptr, state.heap);
+            state.refmap.recursively_decr(destptr, state.heap, []);
           } else {
             throw error(`${destptr} cannot be a bigint`);
           }
