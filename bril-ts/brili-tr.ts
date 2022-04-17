@@ -580,7 +580,8 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
         case "print": {
             let args = instr.args || [];
             let values = args.map(i => get(state.env, i).toString());
-            console.log(...values);
+            // For tracing, ignore printing out values.
+            // console.log(...values);
             return NEXT;
         }
 
@@ -863,9 +864,9 @@ function evalProg(prog: bril.Program) {
     }
 
     // print tracing result to terminal
-    for (let instr of state.trace) {
-        console.log(JSON.stringify(instr));
-    }
+    let instructions = state.trace;
+    let instr_dict = { "instrs": instructions };
+    console.log(JSON.stringify(instr_dict));
 
 }
 
