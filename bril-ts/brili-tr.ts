@@ -612,7 +612,7 @@ function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, cu
             if (state.continueTracing) {
                 state.trace.pop();
                 state.continueTracing = false;
-                state.endLoc = lineNumber - 1;
+                state.endLoc = lineNumber;
                 state.endFunc = currentFunc;
             }
             let args = instr.args || [];
@@ -634,7 +634,7 @@ function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, cu
             if (state.continueTracing) {
                 state.trace.pop();
                 state.continueTracing = false;
-                state.endLoc = lineNumber - 1;
+                state.endLoc = lineNumber;
                 state.endFunc = currentFunc;
             }
             return evalCall(instr, state);
