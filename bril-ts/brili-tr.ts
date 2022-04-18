@@ -312,7 +312,11 @@ type State = {
     specparent: State | null,
 
     // For tracing
-    trace: bril.Instruction[],
+    trace: { "instr": bril.Instruction, "label": string | null }[],
+    visitedLabels: (string | null)[],
+    endLoc: number,
+    endFunc: string,
+    continueTracing: boolean,
 }
 
 /**
@@ -358,6 +362,10 @@ function evalCall(instr: bril.Operation, state: State): Action {
         curlabel: null,
         specparent: null,  // Speculation not allowed.
         trace: state.trace,
+        visitedLabels: state.visitedLabels,
+        continueTracing: state.continueTracing,
+        endLoc: state.endLoc,
+        endFunc: state.endFunc
     }
     let retVal = evalFunc(func, newState);
     state.icount = newState.icount;
@@ -402,9 +410,11 @@ function evalCall(instr: bril.Operation, state: State): Action {
  * otherwise, return "next" to indicate that we should proceed to the next
  * instruction or "end" to terminate the function.
  */
-function evalInstr(instr: bril.Instruction, state: State): Action {
+function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, currentFunc: string): Action {
     // Record instruction for tracing
-    state.trace.push(instr);
+    if (state.continueTracing) {
+        state.trace.push({ "instr": instr, "label": state.curlabel });
+    }
 
     state.icount += BigInt(1);
 
@@ -599,6 +609,9 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
         }
 
         case "ret": {
+            state.continueTracing = false;
+            state.endLoc = lineNumber;
+            state.endFunc = currentFunc;
             let args = instr.args || [];
             if (args.length == 0) {
                 return { "action": "end", "ret": null };
@@ -615,6 +628,9 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
         }
 
         case "call": {
+            state.continueTracing = false;
+            state.endLoc = lineNumber;
+            state.endFunc = currentFunc;
             return evalCall(instr, state);
         }
 
@@ -717,7 +733,7 @@ function evalFunc(func: bril.Function, state: State): Value | null {
         let line = func.instrs[i];
         if ('op' in line) {
             // Run an instruction.
-            let action = evalInstr(line, state);
+            let action = evalInstr(line, state, i, func.name);
 
             // Take the prescribed action.
             switch (action.action) {
@@ -779,6 +795,16 @@ function evalFunc(func: bril.Function, state: State): Value | null {
             // Update CFG tracking for SSA phi nodes.
             state.lastlabel = state.curlabel;
             state.curlabel = line.label;
+
+            // Update labels for tracing
+            if (state.visitedLabels.includes(line.label) && state.continueTracing) {
+                state.visitedLabels.push(line.label);
+                state.continueTracing = false;
+                state.endLoc = i;
+                state.endFunc = func.name;
+            } else if (!state.visitedLabels.includes(line.label) && state.continueTracing) {
+                state.visitedLabels.push(line.label);
+            }
         }
     }
 
@@ -852,6 +878,10 @@ function evalProg(prog: bril.Program) {
         curlabel: null,
         specparent: null,
         trace: [],
+        visitedLabels: [],
+        continueTracing: true,
+        endLoc: -1,
+        endFunc: "",
     }
     evalFunc(main, state);
 
@@ -865,7 +895,7 @@ function evalProg(prog: bril.Program) {
 
     // print tracing result to terminal
     let instructions = state.trace;
-    let instr_dict = { "instrs": instructions };
+    let instr_dict = { "instrs": instructions, "end_offset": state.endLoc, "end_func": state.endFunc };
     console.log(JSON.stringify(instr_dict));
 
 }
