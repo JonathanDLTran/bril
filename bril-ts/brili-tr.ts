@@ -609,10 +609,12 @@ function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, cu
         }
 
         case "ret": {
-            state.trace.pop();
-            state.continueTracing = false;
-            state.endLoc = lineNumber - 1;
-            state.endFunc = currentFunc;
+            if (state.continueTracing) {
+                state.trace.pop();
+                state.continueTracing = false;
+                state.endLoc = lineNumber - 1;
+                state.endFunc = currentFunc;
+            }
             let args = instr.args || [];
             if (args.length == 0) {
                 return { "action": "end", "ret": null };
@@ -629,10 +631,12 @@ function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, cu
         }
 
         case "call": {
-            state.trace.pop();
-            state.continueTracing = false;
-            state.endLoc = lineNumber - 1;
-            state.endFunc = currentFunc;
+            if (state.continueTracing) {
+                state.trace.pop();
+                state.continueTracing = false;
+                state.endLoc = lineNumber - 1;
+                state.endFunc = currentFunc;
+            }
             return evalCall(instr, state);
         }
 
