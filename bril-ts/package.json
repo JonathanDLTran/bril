@@ -7,10 +7,11 @@
     "ts2bril": "build/ts2bril.js",
     "brili": "build/brili.js",
     "brili-gc": "build/brili-gc.js",
-    "brili-tr": "build/brili-tr.js"
+    "brili-tr": "build/brili-tr.js",
+    "brili-vc": "build/brili-vc.js"
   },
   "scripts": {
-    "build": "tsc && chmod a+x build/ts2bril.js build/brili.js build/brili-gc.js build/brili-tr.js"
+    "build": "tsc && chmod a+x build/ts2bril.js build/brili.js build/brili-gc.js build/brili-tr.js build/brili-vc.js"
   },
   "dependencies": {
     "@types/node": "^11.13.5",

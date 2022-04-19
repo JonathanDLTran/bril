@@ -588,6 +588,12 @@ function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, cu
         }
 
         case "print": {
+            if (state.continueTracing) {
+                state.trace.pop();
+                state.continueTracing = false;
+                state.endLoc = lineNumber;
+                state.endFunc = currentFunc;
+            }
             let args = instr.args || [];
             let values = args.map(i => get(state.env, i).toString());
             // For tracing, ignore printing out values.
@@ -641,6 +647,12 @@ function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, cu
         }
 
         case "alloc": {
+            if (state.continueTracing) {
+                state.trace.pop();
+                state.continueTracing = false;
+                state.endLoc = lineNumber;
+                state.endFunc = currentFunc;
+            }
             let amt = getInt(instr, state.env, 0);
             let typ = instr.type;
             if (!(typeof typ === "object" && typ.hasOwnProperty('ptr'))) {
@@ -652,18 +664,36 @@ function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, cu
         }
 
         case "free": {
+            if (state.continueTracing) {
+                state.trace.pop();
+                state.continueTracing = false;
+                state.endLoc = lineNumber;
+                state.endFunc = currentFunc;
+            }
             let val = getPtr(instr, state.env, 0);
             state.heap.free(val.loc);
             return NEXT;
         }
 
         case "store": {
+            if (state.continueTracing) {
+                state.trace.pop();
+                state.continueTracing = false;
+                state.endLoc = lineNumber;
+                state.endFunc = currentFunc;
+            }
             let target = getPtr(instr, state.env, 0);
             state.heap.write(target.loc, getArgument(instr, state.env, 1, target.type));
             return NEXT;
         }
 
         case "load": {
+            if (state.continueTracing) {
+                state.trace.pop();
+                state.continueTracing = false;
+                state.endLoc = lineNumber;
+                state.endFunc = currentFunc;
+            }
             let ptr = getPtr(instr, state.env, 0);
             let val = state.heap.read(ptr.loc);
             if (val === undefined || val === null) {
@@ -675,6 +705,12 @@ function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, cu
         }
 
         case "ptradd": {
+            if (state.continueTracing) {
+                state.trace.pop();
+                state.continueTracing = false;
+                state.endLoc = lineNumber;
+                state.endFunc = currentFunc;
+            }
             let ptr = getPtr(instr, state.env, 0)
             let val = getInt(instr, state.env, 1)
             state.env.set(instr.dest, { loc: ptr.loc.add(Number(val)), type: ptr.type })
