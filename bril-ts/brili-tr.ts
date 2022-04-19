@@ -312,14 +312,12 @@ type State = {
     specparent: State | null,
 
     // For tracing
-    trace: { "instr": bril.Instruction, "label": string | null }[],
-    visitedLabels: (string | null)[],
-    foundBackedge: boolean,
+    trace: { "instr": bril.Instruction, "branch": boolean | null }[],
+    startTracing: boolean,
+    continueTracing: boolean,
     startFunc: string,
     endLoc: number,
     endFunc: string,
-    continueTracing: boolean,
-    startLoc: number,
 }
 
 /**
@@ -365,16 +363,20 @@ function evalCall(instr: bril.Operation, state: State): Action {
         curlabel: null,
         specparent: null,  // Speculation not allowed.
         trace: state.trace,
-        visitedLabels: state.visitedLabels,
+        startTracing: state.startTracing,
         continueTracing: state.continueTracing,
         endLoc: state.endLoc,
         endFunc: state.endFunc,
         startFunc: state.startFunc,
-        foundBackedge: state.foundBackedge,
-        startLoc: state.startLoc,
     }
     let retVal = evalFunc(func, newState);
     state.icount = newState.icount;
+    state.trace = newState.trace;
+    state.continueTracing = newState.continueTracing;
+    state.startTracing = newState.startTracing;
+    state.endLoc = newState.endLoc;
+    state.endFunc = newState.endFunc;
+    state.startFunc = newState.startFunc;
 
     // Dynamically check the function's return value and type.
     if (!('dest' in instr)) {  // `instr` is an `EffectOperation`.
@@ -419,7 +421,7 @@ function evalCall(instr: bril.Operation, state: State): Action {
 function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, currentFunc: string): Action {
     // Record instruction for tracing
     if (state.continueTracing) {
-        state.trace.push({ "instr": instr, "label": state.curlabel });
+        state.trace.push({ "instr": instr, "branch": null });
     }
 
     state.icount += BigInt(1);
@@ -613,6 +615,10 @@ function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, cu
 
         case "br": {
             let cond = getBool(instr, state.env, 0);
+            if (state.continueTracing) {
+                state.trace.pop();
+                state.trace.push({ "instr": instr, "branch": cond });
+            }
             if (cond) {
                 return { "action": "jump", "label": getLabel(instr, 0) };
             } else {
@@ -777,6 +783,12 @@ function evalInstr(instr: bril.Instruction, state: State, lineNumber: number, cu
 }
 
 function evalFunc(func: bril.Function, state: State): Value | null {
+    if (func.name != "main" && !state.startTracing) {
+        state.startTracing = true;
+        state.continueTracing = true;
+        state.startFunc = func.name;
+    }
+
     for (let i = 0; i < func.instrs.length; ++i) {
         let line = func.instrs[i];
         if ('op' in line) {
@@ -843,23 +855,6 @@ function evalFunc(func: bril.Function, state: State): Value | null {
             // Update CFG tracking for SSA phi nodes.
             state.lastlabel = state.curlabel;
             state.curlabel = line.label;
-
-            if (state.visitedLabels.includes(line.label) && !state.foundBackedge) {
-                state.visitedLabels.push(line.label);
-                state.startFunc = func.name;
-                state.startLoc = i;
-                state.continueTracing = true;
-            }
-
-            // Update labels for tracing
-            if (state.visitedLabels.includes(line.label) && state.continueTracing) {
-                state.visitedLabels.push(line.label);
-                state.continueTracing = false;
-                state.endLoc = i;
-                state.endFunc = func.name;
-            } else if (!state.visitedLabels.includes(line.label) && state.continueTracing) {
-                state.visitedLabels.push(line.label);
-            }
         }
     }
 
@@ -933,13 +928,11 @@ function evalProg(prog: bril.Program) {
         curlabel: null,
         specparent: null,
         trace: [],
-        visitedLabels: [],
+        startTracing: false,
         continueTracing: false,
         endLoc: -1,
         endFunc: "",
         startFunc: "",
-        foundBackedge: false,
-        startLoc: -1,
     }
     evalFunc(main, state);
 
@@ -953,15 +946,16 @@ function evalProg(prog: bril.Program) {
 
     // print tracing result to terminal
     let instructions = state.trace;
-    let instr_dict = { "instrs": instructions, "end_offset": state.endLoc, "end_func": state.endFunc, "start_func": state.startFunc, "start_offset": state.startLoc };
-    console.log(JSON.stringify(instr_dict));
-
+    let instr_dict = { "instrs": instructions, "end_offset": state.endLoc, "end_func": state.endFunc, "start_func": state.startFunc };
+    return instr_dict;
 }
 
 async function main() {
     try {
         let prog = JSON.parse(await readStdin()) as bril.Program;
-        evalProg(prog);
+        let instr_dict = evalProg(prog);
+        let final_dict = { "prog": prog, "trace": instr_dict };
+        console.log(JSON.stringify(final_dict));
     }
     catch (e) {
         if (e instanceof BriliError) {
