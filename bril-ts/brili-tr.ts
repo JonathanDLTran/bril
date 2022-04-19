@@ -314,9 +314,12 @@ type State = {
     // For tracing
     trace: { "instr": bril.Instruction, "label": string | null }[],
     visitedLabels: (string | null)[],
+    foundBackedge: boolean,
+    startFunc: string,
     endLoc: number,
     endFunc: string,
     continueTracing: boolean,
+    startLoc: number,
 }
 
 /**
@@ -365,7 +368,10 @@ function evalCall(instr: bril.Operation, state: State): Action {
         visitedLabels: state.visitedLabels,
         continueTracing: state.continueTracing,
         endLoc: state.endLoc,
-        endFunc: state.endFunc
+        endFunc: state.endFunc,
+        startFunc: state.startFunc,
+        foundBackedge: state.foundBackedge,
+        startLoc: state.startLoc,
     }
     let retVal = evalFunc(func, newState);
     state.icount = newState.icount;
@@ -838,6 +844,13 @@ function evalFunc(func: bril.Function, state: State): Value | null {
             state.lastlabel = state.curlabel;
             state.curlabel = line.label;
 
+            if (state.visitedLabels.includes(line.label) && !state.foundBackedge) {
+                state.visitedLabels.push(line.label);
+                state.startFunc = func.name;
+                state.startLoc = i;
+                state.continueTracing = true;
+            }
+
             // Update labels for tracing
             if (state.visitedLabels.includes(line.label) && state.continueTracing) {
                 state.visitedLabels.push(line.label);
@@ -921,9 +934,12 @@ function evalProg(prog: bril.Program) {
         specparent: null,
         trace: [],
         visitedLabels: [],
-        continueTracing: true,
+        continueTracing: false,
         endLoc: -1,
         endFunc: "",
+        startFunc: "",
+        foundBackedge: false,
+        startLoc: -1,
     }
     evalFunc(main, state);
 
@@ -937,7 +953,7 @@ function evalProg(prog: bril.Program) {
 
     // print tracing result to terminal
     let instructions = state.trace;
-    let instr_dict = { "instrs": instructions, "end_offset": state.endLoc, "end_func": state.endFunc };
+    let instr_dict = { "instrs": instructions, "end_offset": state.endLoc, "end_func": state.endFunc, "start_func": state.startFunc, "start_offset": state.startLoc };
     console.log(JSON.stringify(instr_dict));
 
 }
