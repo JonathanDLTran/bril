@@ -15,6 +15,11 @@ export type Ident = string;
 export type PrimType = "int" | "bool" | "float" | "vector";
 
 /**
+ * Vector Size Defintion: Fixed to be 4
+ */
+export let vectorSize = 4;
+
+/**
  * Parameterized types. (We only have pointers for now.)
  */
 export type ParamType = { "ptr": Type };

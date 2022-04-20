@@ -155,7 +155,13 @@ type Pointer = {
     type: bril.Type;
 }
 
-type Value = boolean | BigInt | Pointer | number;
+type Vector = {
+    size: number; // this is restricted to be length 4 only
+    type: bril.Type; // this is restricted to be integer only 
+    values: bigint[];
+}
+
+type Value = boolean | BigInt | Pointer | number | Vector;
 type Env = Map<bril.Ident, Value>;
 
 /**
@@ -242,7 +248,7 @@ function checkArgs(instr: bril.Operation, count: number) {
 
 function getPtr(instr: bril.Operation, env: Env, index: number): Pointer {
     let val = getArgument(instr, env, index);
-    if (typeof val !== 'object' || val instanceof BigInt) {
+    if (typeof val !== 'object' || val instanceof BigInt || "size" in val) { // size in val to eliminate vectors
         throw `${instr.op} argument ${index} must be a Pointer`;
     }
     return val;
@@ -258,6 +264,10 @@ function getArgument(instr: bril.Operation, env: Env, index: number, typ?: bril.
         throw error(`${instr.op} argument ${index} must be a ${typ}`);
     }
     return val;
+}
+
+function getVec(instr: bril.Operation, env: Env, index: number): Vector {
+    return getArgument(instr, env, index, "vector") as Vector;
 }
 
 function getInt(instr: bril.Operation, env: Env, index: number): bigint {
@@ -402,6 +412,13 @@ function evalCall(instr: bril.Operation, state: State): Action {
         state.env.set(instr.dest, retVal);
     }
     return NEXT;
+}
+
+/**
+ * Evaluate vector binary operation
+ */
+function vecBinop() {
+
 }
 
 /**
@@ -712,22 +729,95 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
         }
 
         case "veczero": {
+            let zero = BigInt(0);
+            state.env.set(instr.dest, { "size": bril.vectorSize, "type": "int", "values": [zero, zero, zero, zero] })
             return NEXT;
         }
 
         case "vecload": {
+            let args = instr.args;
+            if (args === undefined) {
+                throw error(`Vecload executed with no arguments.`);
+            }
+            if (args.length !== argCounts["vecload"]) {
+                throw error(`Vecload executed with incorrect number of arguments ${args}.`);
+            }
+            let vec = getVec(instr, state.env, 0);
+            let index = getInt(instr, state.env, 1);
+            if (index < 0 || index > bril.vectorSize) {
+                throw error(`Vecload index was out of bounds ${index}`);
+            }
+            let element = getInt(instr, state.env, 2);
+            vec.values[Number(index)] = element
+            let vecName = args[0];
+            state.env.set(vecName, vec);
             return NEXT;
         }
 
         case "vecstore": {
+            let args = instr.args;
+            if (args === undefined) {
+                throw error(`Vecstore executed with no arguments.`);
+            }
+            if (args.length !== argCounts["vecstore"]) {
+                throw error(`Vecstore executed with incorrect number of arguments ${args}.`);
+            }
+            let vec = getVec(instr, state.env, 0);
+            let index = getInt(instr, state.env, 1);
+            if (index < 0 || index > bril.vectorSize) {
+                throw error(`Vecstore index was out of bounds ${index}`);
+            }
+            let element = vec.values[Number(index)];
+            let dest = instr.dest;
+            state.env.set(dest, element);
             return NEXT;
         }
 
         case "vecadd": {
+            let args = instr.args;
+            if (args === undefined) {
+                throw error(`Vecadd executed with no arguments.`);
+            }
+            if (args.length !== argCounts["vecadd"]) {
+                throw error(`Vecadd executed with incorrect number of arguments ${args}.`);
+            }
+            let vec1 = getVec(instr, state.env, 0);
+            let vec2 = getVec(instr, state.env, 1);
+            let zero = BigInt(0);
+            let sum = [zero, zero, zero, zero];
+            for (let [i, e1] of vec1.values.entries()) {
+                sum[i] += e1;
+            }
+            for (let [i, e2] of vec2.values.entries()) {
+                sum[i] += e2;
+            }
+            let newVec: Vector = { "size": bril.vectorSize, "type": "int", "values": sum };
+            let dest = instr.dest;
+            state.env.set(dest, newVec);
             return NEXT;
         }
 
         case "vecsub": {
+            let args = instr.args;
+            if (args === undefined) {
+                throw error(`Vecsub executed with no arguments.`);
+            }
+            if (args.length !== argCounts["vecsub"]) {
+                throw error(`Vecsub executed with incorrect number of arguments ${args}.`);
+            }
+            let vec1 = getVec(instr, state.env, 0);
+            let vec2 = getVec(instr, state.env, 1);
+            let zero = BigInt(0);
+            let diff = [zero, zero, zero, zero];
+            for (let [i, e1] of vec1.values.entries()) {
+                diff[i] += e1;
+            }
+            for (let [i, e2] of vec2.values.entries()) {
+                diff[i] -= e2;
+            }
+            let newVec: Vector = { "size": bril.vectorSize, "type": "int", "values": diff };
+            let dest = instr.dest;
+            state.env.set(dest, newVec);
             return NEXT;
         }
 
