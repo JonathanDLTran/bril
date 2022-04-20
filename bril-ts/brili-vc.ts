@@ -415,13 +415,6 @@ function evalCall(instr: bril.Operation, state: State): Action {
 }
 
 /**
- * Evaluate vector binary operation
- */
-function vecBinop() {
-
-}
-
-/**
  * Interpret an instruction in a given environment, possibly updating the
  * environment. If the instruction branches to a new label, return that label;
  * otherwise, return "next" to indicate that we should proceed to the next
@@ -822,18 +815,98 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
         }
 
         case "vecmul": {
+            let args = instr.args;
+            if (args === undefined) {
+                throw error(`Vecmul executed with no arguments.`);
+            }
+            if (args.length !== argCounts["vecmul"]) {
+                throw error(`Vecmul executed with incorrect number of arguments ${args}.`);
+            }
+            let vec1 = getVec(instr, state.env, 0);
+            let vec2 = getVec(instr, state.env, 1);
+            let zero = BigInt(0);
+            let mul = [zero, zero, zero, zero];
+            for (let [i, e1] of vec1.values.entries()) {
+                mul[i] += e1;
+            }
+            for (let [i, e2] of vec2.values.entries()) {
+                mul[i] *= e2;
+            }
+            let newVec: Vector = { "size": bril.vectorSize, "type": "int", "values": mul };
+            let dest = instr.dest;
+            state.env.set(dest, newVec);
             return NEXT;
         }
 
         case "vecdiv": {
+            let args = instr.args;
+            if (args === undefined) {
+                throw error(`Vecdiv executed with no arguments.`);
+            }
+            if (args.length !== argCounts["vecdiv"]) {
+                throw error(`Vecdiv executed with incorrect number of arguments ${args}.`);
+            }
+            let vec1 = getVec(instr, state.env, 0);
+            let vec2 = getVec(instr, state.env, 1);
+            let zero = BigInt(0);
+            let div = [zero, zero, zero, zero];
+            for (let [i, e1] of vec1.values.entries()) {
+                div[i] += e1;
+            }
+            for (let [i, e2] of vec2.values.entries()) {
+                div[i] /= e2;
+            }
+            let newVec: Vector = { "size": bril.vectorSize, "type": "int", "values": div };
+            let dest = instr.dest;
+            state.env.set(dest, newVec);
             return NEXT;
         }
 
         case "vecmac": {
+            let args = instr.args;
+            if (args === undefined) {
+                throw error(`Vecmac executed with no arguments.`);
+            }
+            if (args.length !== argCounts["vecmac"]) {
+                throw error(`Vecmac executed with incorrect number of arguments ${args}.`);
+            }
+            let vec1 = getVec(instr, state.env, 0);
+            let vec2 = getVec(instr, state.env, 1);
+            let vec3 = getVec(instr, state.env, 2);
+            let zero = BigInt(0);
+            let mac = [zero, zero, zero, zero];
+            for (let [i, e1] of vec1.values.entries()) {
+                mac[i] += e1;
+            }
+            for (let [i, e2] of vec2.values.entries()) {
+                mac[i] *= e2;
+            }
+            for (let [i, e3] of vec3.values.entries()) {
+                mac[i] += e3;
+            }
+            let newVec: Vector = { "size": bril.vectorSize, "type": "int", "values": mac };
+            let dest = instr.dest;
+            state.env.set(dest, newVec);
             return NEXT;
         }
 
         case "vecneg": {
+            let args = instr.args;
+            if (args === undefined) {
+                throw error(`Vecneg executed with no arguments.`);
+            }
+            if (args.length !== argCounts["vecneg"]) {
+                throw error(`Vecneg executed with incorrect number of arguments ${args}.`);
+            }
+            let vec1 = getVec(instr, state.env, 0);
+            let zero = BigInt(0);
+            let neg = [zero, zero, zero, zero];
+            for (let [i, e1] of vec1.values.entries()) {
+                neg[i] -= e1;
+            }
+            let newVec: Vector = { "size": bril.vectorSize, "type": "int", "values": neg };
+            let dest = instr.dest;
+            state.env.set(dest, newVec);
             return NEXT;
         }
 
