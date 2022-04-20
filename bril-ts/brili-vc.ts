@@ -139,6 +139,15 @@ const argCounts: { [key in bril.OpCode]: number | null } = {
     speculate: 0,
     guard: 1,
     commit: 0,
+    veczero: 0,
+    vecload: 3,
+    vecstore: 2,
+    vecadd: 2,
+    vecsub: 2,
+    vecmul: 2,
+    vecdiv: 2,
+    vecmac: 2,
+    vecneg: 1,
 };
 
 type Pointer = {
@@ -171,6 +180,9 @@ function typeCheck(val: Value, typ: bril.Type): boolean {
 function typeCmp(lhs: bril.Type, rhs: bril.Type): boolean {
     if (lhs === "int" || lhs == "bool" || lhs == "float") {
         return lhs == rhs;
+    } else if (lhs === "vector") {
+        // Currently, vectors can only be comprised of 4 ints
+        return lhs == rhs
     } else {
         if (typeof rhs === "object" && rhs.hasOwnProperty("ptr")) {
             return typeCmp(lhs.ptr, rhs.ptr);
@@ -697,6 +709,42 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
         // Resolve speculation, making speculative state real.
         case "commit": {
             return { "action": "commit" };
+        }
+
+        case "veczero": {
+            return NEXT;
+        }
+
+        case "vecload": {
+            return NEXT;
+        }
+
+        case "vecstore": {
+            return NEXT;
+        }
+
+        case "vecadd": {
+            return NEXT;
+        }
+
+        case "vecsub": {
+            return NEXT;
+        }
+
+        case "vecmul": {
+            return NEXT;
+        }
+
+        case "vecdiv": {
+            return NEXT;
+        }
+
+        case "vecmac": {
+            return NEXT;
+        }
+
+        case "vecneg": {
+            return NEXT;
         }
 
     }

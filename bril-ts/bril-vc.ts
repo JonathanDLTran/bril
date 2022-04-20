@@ -9,14 +9,15 @@ export type Ident = string;
 
 /**
  * Primitive types.
- */
-export type PrimType = "int" | "bool" | "float";
-
-/**
- * Parameterized types. (We only have pointers and vectors for now.)
+ * 
  * Vectors are currently only allowed to work with ints, and must be length 4.
  */
-export type ParamType = { "ptr": Type } | { "vector": Type };
+export type PrimType = "int" | "bool" | "float" | "vector";
+
+/**
+ * Parameterized types. (We only have pointers for now.)
+ */
+export type ParamType = { "ptr": Type };
 
 /**
  * Value types.
@@ -54,7 +55,7 @@ export interface ValueOperation extends Op {
     "fadd" | "fmul" | "fsub" | "fdiv" |
     "feq" | "flt" | "fle" | "fgt" | "fge" |
     "phi" |
-    "zerovec" | "loadvec" | "storevec" | "vecadd" | "vecsub" | "vecmul" | "vecdiv" | "vecmac";
+    "veczero" | "vecload" | "vecstore" | "vecadd" | "vecsub" | "vecmul" | "vecdiv" | "vecmac" | "vecneg";
     dest: Ident;
     type: Type;
 }
