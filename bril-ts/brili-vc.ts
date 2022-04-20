@@ -146,7 +146,7 @@ const argCounts: { [key in bril.OpCode]: number | null } = {
     vecsub: 2,
     vecmul: 2,
     vecdiv: 2,
-    vecmac: 2,
+    vecmac: 3,
     vecneg: 1,
 };
 
@@ -176,6 +176,8 @@ function typeCheck(val: Value, typ: bril.Type): boolean {
         return typeof val === "number";
     } else if (typeof typ === "object" && typ.hasOwnProperty("ptr")) {
         return val.hasOwnProperty("loc");
+    } else if (typ === "vector") {
+        return val.hasOwnProperty("values");
     }
     throw error(`unknown type ${typ}`);
 }
@@ -595,6 +597,17 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
         case "print": {
             let args = instr.args || [];
             let values = args.map(i => get(state.env, i).toString());
+            for (let [i, v] of args.entries()) {
+                let element = get(state.env, v);
+                if (typeof element === "boolean" || typeof element === "number" || element instanceof BigInt || (typeof element === "object" && "loc" in element)) {
+                    continue;
+                } else if (typeof element === "object" && "values" in element) {
+                    // print out a vector
+                    values[i] = "[" + element.values.toString() + "]";
+                } else {
+                    continue;
+                }
+            }
             console.log(...values);
             return NEXT;
         }
