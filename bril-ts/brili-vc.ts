@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import * as bril from './bril';
+import * as bril from './bril-vc';
 import { readStdin, unreachable } from './util';
 
 /**

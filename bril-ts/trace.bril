@@ -1,5 +1,0 @@
-@main {
-    x: int = const 3;
-    y: int = const 4;
-    z: int = const 5;
-}
