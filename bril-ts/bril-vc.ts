@@ -60,7 +60,7 @@ export interface ValueOperation extends Op {
     "fadd" | "fmul" | "fsub" | "fdiv" |
     "feq" | "flt" | "fle" | "fgt" | "fge" |
     "phi" |
-    "veczero" | "vecload" | "vecstore" | "vecadd" | "vecsub" | "vecmul" | "vecdiv" | "vecmac" | "vecneg";
+    "veczero" | "vecload" | "vecstore" | "vecadd" | "vecsub" | "vecmul" | "vecdiv" | "vecmac" | "vecneg" | "vecmove";
     dest: Ident;
     type: Type;
 }

@@ -148,6 +148,7 @@ const argCounts: { [key in bril.OpCode]: number | null } = {
     vecdiv: 2,
     vecmac: 3,
     vecneg: 1,
+    vecmove: 1,
 };
 
 type Pointer = {
@@ -923,6 +924,25 @@ function evalInstr(instr: bril.Instruction, state: State): Action {
             return NEXT;
         }
 
+        case "vecmove": {
+            let args = instr.args;
+            if (args === undefined) {
+                throw error(`Vecmove executed with no arguments.`);
+            }
+            if (args.length !== argCounts["vecmove"]) {
+                throw error(`Vecmove executed with incorrect number of arguments ${args}.`);
+            }
+            let vec = getVec(instr, state.env, 0);
+            let zero = BigInt(0);
+            let copied_vec = [zero, zero, zero, zero];
+            for (let [i, e1] of vec.values.entries()) {
+                copied_vec[i] = e1;
+            }
+            let newVec: Vector = { "size": bril.vectorSize, "type": "int", "values": copied_vec };
+            let dest = instr.dest;
+            state.env.set(dest, newVec);
+            return NEXT;
+        }
     }
     unreachable(instr);
     throw error(`unhandled opcode ${(instr as any).op}`);
